@@ -1,0 +1,204 @@
+---
+title: "Homework 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+
+## 1. Independence of Events <small>(8 points, 2 points each)</small>
+
+A fair four-sided die (numbered 1,2,3 and 4) is rolled three times. Consider the following three events:
+
+A: "The sum is 6 or less"
+
+B: "The second roll is more than the first"
+
+C: "The sum is odd"
+
+D: "Exactly two of the rolls are the same"
+
+
+```{r}
+outcomes <- 1:4
+combinations <- expand.grid(outcomes, outcomes, outcomes)
+A <- combinations[rowSums(combinations) <= 6, ]
+A
+B <- combinations[combinations[, 2] > combinations[, 1], ]
+B
+C <- combinations[rowSums(combinations) %% 2 != 0, ]
+C
+D <- combinations[apply(combinations, 1, function(x) length(unique(x))) == 3, ]
+D
+
+
+```
+
+
+a. Are A and B independent? No
+
+The likelihood of the combined sum being 6 or less stands at 20/64, while the probability of the second value exceeding the first is 24/64. When assessing both events concurrently, yielding a probability of 7/64, it's evident that (20/64)*(24/64) ≠ (7/64), indicating a dependency. 
+
+b. Are C and D independent? yes
+
+Since the probability of the sum being odd stands at 32/64, the likelihood of rolling two identical numbers is 40/64, and the joint probability of both events occurring is 20/64. Notably, (32/64)*(40/64) equals (20/64), indicating independence. 
+
+c. Are A and C independent? no
+
+The probability of the combined sum being 6 or less is 20/64, while the likelihood of rolling an odd sum is 32/64. When considering both events, joint probability is 7/64, it's apparent that (20/64)*(32/64) ≠ (7/64), indicating dependence. 
+
+
+d. Are B and D independent? No
+
+The probability of the second roll being greater than the first stands at 24/64, while the likelihood of rolling two identical numbers is 40/64. However, the joint probability of both events occurring is 12/64. Consequently, (24/64)*(40/64) does not equal (12/64), indicating a dependency.
+
+
+## 2. Stock Portfolio <small>(8 points, 2 points each)</small>
+
+Consider two stocks. Stock A has a mean annual return of 0.05 and a standard deviation of 0.01. Stock B has a mean annual return of 0.10 and a standard deviation of 0.04. Past data suggests that the prices have a correlation of -0.65.
+You have \$1000 to invest in a portfolio composed of these two stocks. 
+
+a. Suppose you invest \$500 in stock A and \$500 in stock B. What will be the expected return and the standard deviation of your portfolio (in dollars)? 
+*Hint:* $SD(aX+bY) = \sqrt{Var(aX+bY)}= \sqrt{a^2Var(X)+2abCov(X,Y)+b^2Var(Y)}$ and $Cov(X,Y)=\sigma_X \sigma_Y \rho_{XY}$
+
+```{r}
+s1 <- 500
+s2 <- 500
+E <- s1*0.05 + s2*0.10
+
+cov = 0.01*0.04*(-0.65)
+vX = 0.0001
+vY = 0.0016
+
+sd = sqrt((s1^2)*vX + 2*s1*s2*cov + (s2^2)*vY)
+
+E
+sd
+```
+
+
+b. Give an expression for the standard deviation for a portfolio investing $\$x$ in stock A and $\$1000-x$ in stock B. 
+
+sqrt(0.00222*x^2-3.72*x+1600)
+
+```{r}
+x = 500
+
+f <- function(x) sqrt(0.00222 * x^2 - 3.72 * x + 1600)
+
+f(x)
+```
+
+
+c. Find the value $x$ that minimizes this standard deviation. 
+```{r}
+res <- optimize(f, interval = c(0, 1000))
+
+minimum1 = res$minimum
+minimum1
+```
+
+
+d. What is the expected return and standard deviation (in dollars) for the portfolio split you chose in part c?
+
+```{r}
+E <- minimum1*0.05 + (1000-minimum1)*0.10
+sd <- sqrt(0.00222*minimum1^2 - 3.72*minimum1 + 1600)
+
+E
+sd
+```
+
+
+## 3. Mousetrap: A Rube Goldberg Machine  <small>(5 points, 1 points each)</small>
+
+Consider the board game Mousetrap. When you trigger the ball needs to 
+
+1. roll down a ramp
+2. be carried up by a hammer
+3. roll  down another ramp
+4. go down a bathtub drain
+5. land on a lever which
+6. sends a diver into a basin which then
+7. causes the trap to descend.
+
+Suppose you can model the success of each component as independent Bernoulli random variables $X_1$ through $X_7$, where the probability of $X_i$ succeeding is $.94$ for each component. 
+
+a. What is the probability that the trap works correctly from beginning to end? 
+
+```{r}
+x =  0.94 *0.94 *0.94 *0.94 *0.94 *0.94 *0.94
+x
+```
+
+ 
+b. If you attempt the trap 15 times during a game, how many times do you expect it to work correctly from beginning to end?
+
+cannot be 9.72, must be a whole number, so 9 times.
+
+```{r}
+x * 15
+```
+
+c. Suppose you let the marble go: Let $Y$ be the number of components of the trap that work in a row. If one component fails, then you stop counting. Calculate the probability mass function of $Y$. *Hints: $Y$ can have values $0, 1, 2, 3, 4, 5, 6$ or $7$). This is like a Geometric except it does not have infinite support. How can you use this fact to determine the pmf? But what is a 'success' in this context?*
+
+```{r}
+p <- 0.94
+q <- 1-p
+
+pmf_Y <- numeric(8)
+
+for (i in 0:6){
+  pmf_Y[i+1] <- q * p^i
+}
+
+pmf_Y[8] <- p*p*p*p*p*p*p
+print(pmf_Y)
+```
+
+
+d. Calculate the expected value of $Y$ and its variance. 
+
+```{r}
+x <- seq(0,7,1)
+E1 = pmf_Y[1]*x[1] + pmf_Y[2]*x[2] + pmf_Y[3]*x[3] + pmf_Y[4]*x[4] + pmf_Y[5]*x[5] + pmf_Y[6]*x[6] + pmf_Y[7]*x[7] + pmf_Y[8]*x[8]
+print(E1)
+```
+
+e. What is $P(Y = 6 | Y \geq 3)$?
+```{r}
+pmf_Y[7]/(pmf_Y[4] + pmf_Y[5] + pmf_Y[6] + pmf_Y[7] + pmf_Y[8])
+```
+
+## 4. Bayes Rule with forecasting  <small>(9 points, 3 points each)</small>
+
+Madison, Wisconsin gets about 115 days of precipitation per year (we'll just call it rain for the remainder of this problem, even though it is often snow). Suppose that when it rains, the forecast on Channel 3000 is correct 93% of the time and when it doesn't rain they are correct 87% of the time.
+
+a. How many correctly forecasted days do you expect in a 365 day year?
+
+```{r}
+a1 <- (.93 * 115) + (.87 * (365 - 115))
+a1
+```
+
+b. If the forecast calls for rain, what is the likelihood that it actually rains?
+
+```{r}
+x3 = 115/365
+rainlik = (0.93 * x3) / (0.93 * x3 + 0.13 * (1-x3))
+rainlik
+```
+
+c. Suppose that if the forecast was correct yesterday then it increases the likelihood of correctness today. Specifically, if the forecast was correct yesterday, then the probabilities from part a. increase to .98 and .92 respectively. If the forecast was correct on January 29th, what is the probability it was correct on January 28th? To answer this, let us take it as given that the forecast was **incorrect** on the 27th.
+
+
+```{r}
+j2829 = (0.98 * 115 + 0.92 * (365-115)) / 365
+p4 = 324.45 / 365
+num = j2829 * p4
+denom = num + (1-p4) * p4
+num/denom
+```
